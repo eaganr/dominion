@@ -1,0 +1,73 @@
+.card {
+	border:solid;
+	border-width:2px;
+	border-radius:5px;
+	width:75px;
+	height:110px;
+	display:inline-block;
+	background-size:cover;
+}
+
+.you {
+	position:absolute;
+	top:550px;
+	width:1000px;
+	display:block;
+  right:0;
+  left:0;
+  margin:auto;
+}
+
+.deck {
+	position:absolute;
+	left:0px;
+	display:block;
+}
+
+.discard {
+	position:absolute;
+	display:block;
+	right:0px;
+}
+
+.hand {
+	position:absolute;
+  right:0;
+  left:0;
+  margin:auto;
+	display:block;
+}
+
+.player1 {
+	position:absolute;
+	top:250px;
+	left:30px;
+}
+.player2 {
+	position:absolute;
+	top:30px;
+	left:0;
+	right:0;
+	margin:auto;
+}
+.player3 {
+	position:absolute;
+	top:250px;
+	right:30px;
+}
+
+.board {
+	position:absolute;
+	top:180px;
+	margin:auto;
+	left:0;
+	right:0;
+}
+
+
+body {
+	margin:0;
+  padding:0;
+  text-align:center;
+}
+
