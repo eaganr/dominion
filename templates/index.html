@@ -1,29 +1,76 @@
 <html>
-  <style>
-    body{ 
-      font-size: 15pt;
-      font-family: arial;
-    }
-  </style>
 
+<head>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="css/dominion.css">
+	<link rel="stylesheet" type="text/css" href="css/cards.css">
+
+</head>
 
 <body>
-  <h1>Some famous Computer Scientists</h1>
-  <div>{{data}}</div>
 
-  <div>
-    {% for n in data %}
-    <div>{{n}}</div>
-    {% endfor %}
-  </div>
+<div class="you">
+	<div class="deck">
+		<div>Deck</div>
+		<div class="card Back"></div>
+	</div>
+	<div class="hand">
+		<div>Hand</div>
+		<div class="card"></div>	
+		<div class="card"></div>	
+		<div class="card"></div>	
+		<div class="card"></div>	
+		<div class="card"></div>	
+	</div>
+	<div class="discard">
+		<div>Discards</div>
+		<div class="card Back"></div>
+	</div>
+</div>
 
-<p><a href="another.html">Go to the other page</a></p>
+<div class="player1">
+	<div class="player">Player 1</div>
+	<div class="card Back"></div>
+</div>
+<div class="player2">
+	<div class="player">Player 2</div>
+	<div class="card Back"></div>
+</div>
+<div class="player3">
+	<div class="player">Player 3</div>
+	<div class="card Back"></div>
+</div>
 
-<form method="POST" action="/add">
-<p>Name of new computer scientist: <input type="text" name="name"> <input type="submit" value="Add"></p>
-</form>
+<div class="board">
+	<div class="money-estates">
+		<div class="card Gold"></div>
+		<div class="card Silver"></div>
+		<div class="card Copper"></div>
+		<div class="card Province"></div>
+		<div class="card Duchy"></div>
+		<div class="card Estate"></div>
+	</div>
+	<div class="actions">
+		<div class="card"></div>
+		<div class="card"></div>
+		<div class="card"></div>
+		<div class="card"></div>
+		<div class="card"></div>
+		<div></div>
+		<div class="card"></div>
+		<div class="card"></div>
+		<div class="card"></div>
+		<div class="card"></div>
+		<div class="card"></div>
+	</div>
+</div>
+
+
+<script src="js/dominion.js"></script>
 
 </body>
+
 
 
 </html>
