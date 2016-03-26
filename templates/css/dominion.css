@@ -2,10 +2,21 @@
 	border:solid;
 	border-width:2px;
 	border-radius:5px;
+  border-color:black;
 	width:75px;
 	height:110px;
 	display:inline-block;
 	background-size:cover;
+  color:red;
+  font-size:12px;
+}
+
+.card-name {
+  font-size:14px;
+}
+
+.card div {
+  position:relative;
 }
 
 .you {
@@ -64,6 +75,11 @@
 	right:0;
 }
 
+.player-select {
+  position:absolute;
+  left:5px;
+  top:5px;
+}
 
 body {
 	margin:0;
