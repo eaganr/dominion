@@ -5,6 +5,7 @@ var actionkeys = [];
 var treasures = {};
 var estates = {};
 var tekeys = ["Gold", "Silver", "Copper", "Province", "Duchy", "Estate"];
+var hand = [];
 
 
 function drawcards(selector, cardnames, cards, hand) {
@@ -39,19 +40,20 @@ function drawcards(selector, cardnames, cards, hand) {
 $.ajax({
   type : "POST",
   url : "/gamestate",
-  data: {},
+  data: {"playerid": 3},
   success:function (data) {
     console.log(data);
-    for(var card in data) {
-      if(data[card]["is_treasure"]) treasures[card] = data[card];
-      else if(data[card]["victory_point_value"] > 0) estates[card] = data[card];
-      else actions[card] = data[card];
+    var board = data["board"];
+    for(var card in board) {
+      if(board[card]["is_treasure"]) treasures[card] = board[card];
+      else if(board[card]["victory_point_value"] > 0) estates[card] = board[card];
+      else actions[card] = board[card];
     }
 
-    var hand = ["Estate", "Estate", "Copper", "Moat", "Copper"];
-
+    hand = data["hand"];
+  
     //setup hand
-    drawcards(".hand .card", hand, data, true);
+    drawcards(".hand .card", hand, board, true);
  
     //actions
     actionkeys = Object.keys(actions).sort(function(a,b) {

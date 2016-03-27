@@ -16,6 +16,7 @@ Read about it online.
 
 import os
 import json
+import random
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response, send_from_directory
@@ -78,17 +79,62 @@ def index():
   return render_template("index.html", **context)
 
 
+
+def gethand(playerid):
+  print "gethand"
+  cursor = g.conn.execute("SELECT * FROM decks WHERE player_name='Player "+playerid+"' AND turn_id=(SELECT MAX(turn_id) FROM decks WHERE player_name='Player "+playerid+"')")
+  result = {}
+  columns = cursor.keys()
+  turnid = -1
+  for row in cursor:
+    data = {}
+    for i in range(1, len(columns)):
+      data[columns[i]] = row[i]
+    result[row[0]] = data
+    turnid = result[row[0]]["turn_id"]
+
+  cards = []
+  for card in result:
+    for i in range(0, result[card]["num_cards"]):
+      cards.append(card)
+  cards = random.sample(cards, 5)
+  counts = {}
+  for i in range(0, len(cards)):
+    if cards[i] not in counts:
+      counts[cards[i]] = 1
+    else:
+      counts[cards[i]] += 1
+  
+  print counts
+
+  for card in counts:
+    print "UPDATE decks SET num_cards=(num_cards - "+str(counts[card])+") WHERE player_name='Player "+playerid+"' AND turn_id="+str(turnid)+" AND card_name='"+card+"'"
+    print "INSERT INTO hands VALUES ('"+cards[i]+"',"+str(turnid)+",'Player "+str(playerid)+"',"+str(counts[card])+")"
+    print ""
+    cursor = g.conn.execute("UPDATE decks SET num_cards=(num_cards - "+str(counts[card])+") WHERE player_name='Player "+playerid+"' AND turn_id="+str(turnid)+" AND card_name='"+card+"'")
+    cursor = g.conn.execute("INSERT INTO hands VALUES ('"+card+"',"+str(turnid)+",'Player "+str(playerid)+"',"+str(counts[card])+")")
+  cursor.close()
+
+  return cards;
+
 @app.route('/gamestate', methods=['POST'])
 def gamestate():
   cursor = g.conn.execute("SELECT * FROM cards_in_play a JOIN all_cards b ON a.card_name = b.card_name;")
-  result = {}
+  board = {}
   columns = cursor.keys()
   for row in cursor:
     data = {}
     for i in range(1, len(row)):
       data[columns[i]] = row[i]
-    result[row[0]] = data
+    board[row[0]] = data
   cursor.close()
+
+  result = {}
+  result["board"] = board
+  print "board yo"
+  print request.form['playerid']
+  print "yoooo"
+  result["hand"] = gethand(request.form['playerid'])
 
   return Response(response=json.dumps(result), status=200, mimetype="application/json")
 
