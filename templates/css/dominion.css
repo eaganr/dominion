@@ -7,7 +7,6 @@
 	height:110px;
 	display:inline-block;
 	background-size:cover;
-  color:red;
   font-size:12px;
 }
 
@@ -17,6 +16,25 @@
 
 .card div {
   position:relative;
+}
+
+
+.play-btn {
+  background-color:#80ff00;
+  width:25px;
+  border-radius:5px;
+  margin:auto;
+}
+
+
+.buy-btn {
+  background-color:#80ff00;
+  width:45px;
+  border-radius:5px;
+  margin:auto;
+}
+.buy-disabled {
+  background-color:white;
 }
 
 .you {

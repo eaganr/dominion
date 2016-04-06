@@ -10,13 +10,16 @@
 
 <body>
 
-<select class="player-select">
-  <option value="0">Admin</option>
-  <option value="1">Player 1</option>
-  <option value="2">Player 2</option>
-  <option value="3">Player 3</option>
-  <option value="4">Player 4</option>
-</select>
+<div class="controls">
+  <select class="player-select">
+    <option value="0">Admin</option>
+    <option value="1">Player 1</option>
+    <option value="2">Player 2</option>
+    <option value="3">Player 3</option>
+    <option value="4">Player 4</option>
+  </select>
+  <button id="reset-btn" onclick="reset()">Reset</button>
+</div>
 
 <div class="you">
 	<div class="deck">
@@ -25,6 +28,7 @@
 	</div>
 	<div class="hand">
 		<div>Hand</div>
+    <div class="hand-values">Actions: 1, Buys: 1, Coin:3</div>
 		<div class="card"></div>	
 		<div class="card"></div>	
 		<div class="card"></div>	
