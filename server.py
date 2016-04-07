@@ -83,6 +83,41 @@ def index():
 
   return render_template("index.html", **context)
 
+@app.route('/history', methods=['GET'])
+def history():
+  playerid = request.args.get("playerid")
+  turnid = request.args.get("turnid")
+
+  context = {}
+  context["maxturn"] = g.conn.execute("SELECT MAX(turn_id) FROM decks").fetchone()[0]  
+
+  cursor = g.conn.execute("SELECT * FROM decks WHERE player_name='Player "+playerid+"' and turn_id="+turnid)
+  context["deck"] = []
+  context["deck_size"] = 0
+  for row in cursor:
+    context["deck"].append(row)
+    context["deck_size"] += row[3]
+
+  print "deck done"
+
+  cursor = g.conn.execute("SELECT * FROM hands WHERE player_name='Player "+playerid+"' and turn_id="+turnid)
+  context["hand"] = []
+  context["hand_size"] = 0
+  for row in cursor:
+    context["hand"].append(row)
+    context["hand_size"] += row[3]
+  print "hand done"
+
+  cursor = g.conn.execute("SELECT * FROM discards WHERE player_name='Player "+playerid+"' and turn_id="+turnid)
+  context["discards"] = []
+  context["discards_size"] = 0
+  for row in cursor:
+    context["discards"].append(row)
+    context["discards_size"] += row[3]
+  print "discards done"
+
+  return render_template("history.html", **context)
+
 
 def draw_one_card(player_name, turn_id):
   cursor = g.conn.execute("SELECT count(*) FROM decks WHERE player_name='" + player_name + "' AND turn_id ="+ str(turn_id))
@@ -97,7 +132,12 @@ def draw_one_card(player_name, turn_id):
 
   g.conn.execute("UPDATE decks SET num_cards = num_cards - 1 WHERE card_name ='" + card_name +"' AND player_name = '" + player_name + "' AND turn_id ="+str(turn_id))
   g.conn.execute('DELETE FROM decks WHERE num_cards=0')
-  g.conn.execute("UPDATE hands SET num_cards = num_cards + 1 WHERE card_name ='" + card_name +"' AND player_name = '" + player_name +"' AND turn_id ="+str(turn_id))
+  try:
+    print "INSERT INTO hands VALUES ('"+card_name+"',"+str(turn_id)+",'"+player_name+"',1)"
+    g.conn.execute("INSERT INTO hands VALUES ('"+card_name+"',"+str(turn_id)+",'"+player_name+"',1)")
+  except:
+    print "UPDATE hands SET num_cards = num_cards + 1 WHERE card_name ='" + card_name +"' AND player_name = '" + player_name +"' AND turn_id ="+str(turn_id)
+    g.conn.execute("UPDATE hands SET num_cards = num_cards + 1 WHERE card_name ='" + card_name +"' AND player_name = '" + player_name +"' AND turn_id ="+str(turn_id))
   return card_name
     
 

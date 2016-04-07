@@ -1,0 +1,80 @@
+<html>
+  <style>
+    body{ 
+      font-size: 15pt;
+      font-family: arial;
+    }
+  </style>
+  <script>
+    var maxturn = {{maxturn}};
+    function changeturn(n) {
+      var val = parseInt(document.getElementById("turnid").value);
+      val += n;
+      if(val > maxturn) val = maxturn;
+      if(val < 0) val = 0;
+      document.getElementById("turnid").value = val;
+    }
+  </script>  
+
+
+<body>
+  <h1>Dominion History</h1>
+  <div>{{data}}</div>
+
+  <div>
+    {% for n in data %}
+    <div>{{n}}</div>
+    {% endfor %}
+  </div>
+
+<p><a href="/">Back to Game</a></p>
+
+<form method="GET">
+
+  <select name="playerid" id="playerid">
+    <option value="1">Player 1</option>
+    <option value="2">Player 2</option>
+    <option value="3">Player 3</option>
+    <option value="4">Player 4</option>
+  </select>
+  <span>
+    <button onclick="changeturn(-1)" type="button"><-</button>
+    <input type="text" name="turnid" id="turnid" style="width:30px;text-align:center;" value="0"/>
+    <button onclick="changeturn(1)" type="button">-></button>
+    <input type="submit" />
+
+  </span>
+
+</form>
+<div style="position:absolute;top:150px;left:50px;">
+  <h3>Deck: {{deck_size}} cards</h3>
+  {% for n in deck %}
+    <div>{{n[0]}}: {{n[3]}}</div>
+  {% endfor %}
+</div>
+<div style="position:absolute;top:150px;left:350px;">
+  <h3>Hand: {{hand_size}} cards</h3>
+  {% for n in hand %}
+    <div>{{n[0]}}: {{n[3]}}</div>
+  {% endfor %}
+</div>
+<div style="position:absolute;top:150px;left:650px;">
+  <h3>Discards: {{discards_size}} cards</h3>
+  {% for n in discards %}
+    <div>{{n[0]}}: {{n[3]}}</div>
+  {% endfor %}
+</div>
+
+</body>
+
+<script>
+  var get = window.location.search.split("&");
+  var playerid = get[0].split("=")[1];
+  var turnid = get[1].split("=")[1];
+  document.getElementById("turnid").value = turnid;
+  document.getElementById("playerid").value = playerid;
+
+</script>
+
+
+</html>
