@@ -172,11 +172,9 @@ def reset():
 
 @app.route('/buy', methods=['POST'])
 def buy():
-  #TODO: fix buy
-  import pdb; pdb.set_trace()
   card = request.form['card']
   playerid = request.form['playerid']
-  cursor = g.conn.execute("SELECT num_cards FROM discards WHERE id="+str(playerid)+" and card_name='"+card+"' and turn_id=0")
+  cursor = g.conn.execute("SELECT num_cards FROM discards WHERE player_name='Player "+str(playerid)+"' and card_name='"+card+"' and turn_id=0")
   num = 0
   for row in cursor:
     num += row["num_cards"]
