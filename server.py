@@ -98,7 +98,6 @@ def history():
     context["deck"].append(row)
     context["deck_size"] += row[3]
 
-  print "deck done"
 
   cursor = g.conn.execute("SELECT * FROM hands WHERE player_name='Player "+playerid+"' and turn_id="+turnid)
   context["hand"] = []
@@ -106,7 +105,6 @@ def history():
   for row in cursor:
     context["hand"].append(row)
     context["hand_size"] += row[3]
-  print "hand done"
 
   cursor = g.conn.execute("SELECT * FROM discards WHERE player_name='Player "+playerid+"' and turn_id="+turnid)
   context["discards"] = []
@@ -114,7 +112,6 @@ def history():
   for row in cursor:
     context["discards"].append(row)
     context["discards_size"] += row[3]
-  print "discards done"
 
   return render_template("history.html", **context)
 
@@ -133,10 +130,8 @@ def draw_one_card(player_name, turn_id):
   g.conn.execute("UPDATE decks SET num_cards = num_cards - 1 WHERE card_name ='" + card_name +"' AND player_name = '" + player_name + "' AND turn_id ="+str(turn_id))
   g.conn.execute('DELETE FROM decks WHERE num_cards=0')
   try:
-    print "INSERT INTO hands VALUES ('"+card_name+"',"+str(turn_id)+",'"+player_name+"',1)"
     g.conn.execute("INSERT INTO hands VALUES ('"+card_name+"',"+str(turn_id)+",'"+player_name+"',1)")
   except:
-    print "UPDATE hands SET num_cards = num_cards + 1 WHERE card_name ='" + card_name +"' AND player_name = '" + player_name +"' AND turn_id ="+str(turn_id)
     g.conn.execute("UPDATE hands SET num_cards = num_cards + 1 WHERE card_name ='" + card_name +"' AND player_name = '" + player_name +"' AND turn_id ="+str(turn_id))
   return card_name
     
@@ -149,8 +144,15 @@ def drawcards(playerid, num):
   for i in range(0, num):
     cards.append(draw_one_card("Player "+playerid, deckmax))
   return cards
-    
 
+@app.route('/actiondraw', methods=['POST'])
+def actiondraw():
+  playerid = request.form['playerid']
+  num = int(request.form['num'])
+  cards = drawcards(playerid, num)
+  return Response(response=json.dumps(cards), status=200, mimetype="application/json")
+  
+  
 @app.route('/endturn', methods=['POST'])
 def endturn():
   #TODO: figure out how to flip hand into discards properly + snapshot + draw new hand

@@ -1,4 +1,5 @@
 var playerid = 0;
+var turnid = 0;
 
 var board = {};
 var actions = {};
@@ -8,6 +9,7 @@ var estates = {};
 var tekeys = ["Gold", "Silver", "Copper", "Province", "Duchy", "Estate"];
 var hand = [];
 var handvalues = {};
+var handindex = 0;
 
 
 function drawcards(selector, cardnames, hand) {
@@ -35,7 +37,7 @@ function drawcards(selector, cardnames, hand) {
       }
       if(hand) {
         if(cardnames[i] in actions) {
-          text += "<div class=\"play-btn\" onclick=\"playaction(this, '"+cardnames[i]+"')\">Play</div>";
+          text += "<div class=\"play-btn\" onclick=\"playaction(this, "+i+")\">Play</div>";
           count++;
         }
         else text += "<div>&nbsp;</div>";
@@ -61,7 +63,7 @@ function getgamestate() {
       }
       hand = data["hand"];
       hand[2] = "Monument";
-      hand[1] = "Festival";
+      hand[1] = "Moat";
     
       //setup hand
       drawcards(".hand .card", hand, true);
@@ -95,15 +97,26 @@ $(".player-select").change(function() {
   getgamestate();
 });
 
-function addhand() {
-  handvalues["coin"] = 0;
-  handvalues["actions"] = 1;
-  handvalues["buys"] = 1;
-  for(var i=0;i<hand.length;i++) {
-    if(board[hand[i]]["is_treasure"]) {
-      handvalues["coin"] += board[hand[i]]["coin_value"];
+function addhand(newcards) {
+  if(!newcards) {
+    handvalues["coin"] = 0;
+    handvalues["actions"] = 1;
+    handvalues["buys"] = 1;
+    for(var i=0;i<hand.length;i++) {
+      if(board[hand[i]]["is_treasure"]) {
+        handvalues["coin"] += board[hand[i]]["coin_value"];
+      }
     }
   }
+  else {
+    for(var i=0;i<newcards.length;i++) {
+      if(board[newcards[i]]["is_treasure"]) {
+        handvalues["coin"] += board[newcards[i]]["coin_value"];
+      }
+    }
+  }
+
+
   //display, ontimeout to allow buy btns to draw first, then delete
   setTimeout(function() {drawhandvalues();}, 500);
 }
@@ -133,10 +146,27 @@ function drawhandvalues() {
 
 }
 
-function playaction(btn, card) {
+function playaction(btn, cardid) {
+  var card = hand[cardid];
+  hand.splice(cardid, 1); 
   if(handvalues["actions"] > 0) {
     //VP need to be added
     //more cards drawn
+    if(board[card]["plus_card"] > 0) {
+      $.ajax({
+        type : "POST",
+        url : "/actiondraw",
+        data : {"playerid": playerid, "num": board[card]["plus_card"]},
+        success:function(data) {
+          console.log("New cards: " + data);
+          hand = hand.concat(data);
+          handindex = hand.length - 5;
+          drawcards(".hand .card", hand.slice(handindex), true);
+          addhand(data);
+        }
+      });
+    }
+
     handvalues["coin"] += board[card]["coin_value"];
     handvalues["actions"] += board[card]["plus_action"] - 1;
     handvalues["buys"] += board[card]["plus_buy"];
@@ -154,10 +184,18 @@ function playaction(btn, card) {
         btns[0].className = "";
       }
     }
+    drawcards(".hand .card", hand.slice(handindex), true);
   }
   else {
     alert("No Actions!");
   }
+}
+
+function changehandindex(n) {
+  handindex += n;
+  if(handindex < 0) handindex = 0;
+  if(handindex > hand.length - 5) handindex = hand.length - 5;
+  drawcards(".hand .card", hand.slice(handindex), true);
 }
 
 function buycard(card) {
