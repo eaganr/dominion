@@ -1,5 +1,10 @@
 #!/usr/bin/env python2.7
 
+#TODO: admin functions: go back and forward turn
+  #another page with table of decks, hands, and discards, and num VP for one player at a certain turn
+#TODO: add +VP method, save in num_victory_points table
+#TODO: table top right with turn id, current state of victory points, and total cards each player has (remove player 1, 2 etc in GUI)
+
 """
 Columbia's COMS W4111.001 Introduction to Databases
 Example Webserver
@@ -79,47 +84,45 @@ def index():
   return render_template("index.html", **context)
 
 
+def draw_one_card(player_name, turn_id):
+  cursor = g.conn.execute("SELECT count(*) FROM decks WHERE player_name='" + player_name + "' AND turn_id ="+ str(turn_id))
+  size = int(cursor.fetchone()[0])
+  if size == 0:
+    #Flip discard into deck
+    g.conn.execute("INSERT INTO decks SELECT * discards where player_name = '" + player_name+ "' AND turn_id ="+ str(turn_id))
+    g.conn.execute("DELETE FROM discards where player_name = '" + player_name +"' AND turn_id ="+ str(turn_id))
 
-def gethand(playerid):
+  cursor = g.conn.execute("SELECT card_name FROM (Select card_name,generate_series(1,num_cards) FROM decks WHERE player_name = '" + player_name+ "' AND turn_id =" + str(turn_id) +") AS f ORDER BY RANDOM() LIMIT 1")
+  card_name = cursor.fetchone()[0]  
+
+  g.conn.execute("UPDATE decks SET num_cards = num_cards - 1 WHERE card_name ='" + card_name +"' AND player_name = '" + player_name + "' AND turn_id ="+str(turn_id))
+  g.conn.execute('DELETE FROM decks WHERE num_cards=0')
+  g.conn.execute("UPDATE hands SET num_cards = num_cards + 1 WHERE card_name ='" + card_name +"' AND player_name = '" + player_name +"' AND turn_id ="+str(turn_id))
+  return card_name
+    
+
+def drawcards(playerid, num):
   #check if hand already created
   cursor = g.conn.execute("SELECT MAX(turn_id) from decks WHERE player_name='Player "+playerid+"'");
   deckmax = cursor.fetchall()[0][0]
-  cursor = g.conn.execute("SELECT MAX(turn_id) from hands WHERE player_name='Player "+playerid+"'");
-  handmax = cursor.fetchall()[0][0]
-  
-  if deckmax == handmax:
-    cursor = g.conn.execute("SELECT * from hands WHERE player_name='Player "+playerid+"' AND turn_id="+handmax)
-  else:
-    cursor = g.conn.execute("SELECT * FROM decks WHERE player_name='Player "+playerid+"' AND turn_id=(SELECT MAX(turn_id) FROM decks WHERE player_name='Player "+playerid+"')")
-  result = {}
-  columns = cursor.keys()
-  turnid = -1
-  for row in cursor:
-    data = {}
-    for i in range(1, len(columns)):
-      data[columns[i]] = row[i]
-    result[row[0]] = data
-    turnid = result[row[0]]["turn_id"]
-
   cards = []
-  for card in result:
-    for i in range(0, result[card]["num_cards"]):
-      cards.append(card)
-  cards = random.sample(cards, 5)
-  counts = {}
-  for i in range(0, len(cards)):
-    if cards[i] not in counts:
-      counts[cards[i]] = 1
-    else:
-      counts[cards[i]] += 1
-  
+  for i in range(0, num):
+    cards.append(draw_one_card("Player "+playerid, deckmax))
+  return cards
+    
 
-  for card in counts:
-    cursor = g.conn.execute("UPDATE decks SET num_cards=(num_cards - "+str(counts[card])+") WHERE player_name='Player "+playerid+"' AND turn_id="+str(turnid)+" AND card_name='"+card+"'")
-    cursor = g.conn.execute("INSERT INTO hands VALUES ('"+card+"',"+str(turnid)+",'Player "+str(playerid)+"',"+str(counts[card])+")")
-  cursor.close()
+@app.route('/endturn', methods=['POST'])
+def endturn():
+  #TODO: figure out how to flip hand into discards properly + snapshot + draw new hand
+  for table in ['decks','discards','hands']:
+    g.conn.execute( 'INSERT INTO ' +table+ ' SELECT card_name, turn_id+1, player_name, num_cards FROM ' + table +' WHERE turn_id = ' + turn_id )
+    g.conn.execute( 'INSERT INTO cards_in_play SELECT card_name, turn_id+1, num_cards FROM card_in_play WHERE turn_id = ' + turn_id )
+    g.conn.execute( 'INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = ' + turn_id )
 
-  return cards;
+  #check if game over
+  if int(g.conn.execute("SELECT COUNT(*) FROM cards_in_play where num_cards = 0 and turn_id = " + str(turn_id)).fetchone()[0] ) == 3 or int(g.conn.execute("SELECT COUNT(*) FROM cards_in_play where card_name = 'Province' AND num_cards = 0 AND turn_id = " + str(turn_id)).fetchone()[0]) == 0:
+    #Game is Over
+    pass
 
 @app.route('/gamestate', methods=['POST'])
 def gamestate():
@@ -138,7 +141,9 @@ def gamestate():
   if request.form['playerid'] == "0":
     result["hand"] = []
   else:
-    result["hand"] = gethand(request.form['playerid'])
+    result["hand"] = drawcards(request.form['playerid'], 5)
+    cursor = g.conn.execute("SELECT isyourturn FROM players where id="+request.form['playerid'])
+    result["isyourturn"] = cursor.fetchone()[0]
 
   return Response(response=json.dumps(result), status=200, mimetype="application/json")
 
@@ -159,14 +164,19 @@ def reset():
   cursor = g.conn.execute("INSERT INTO decks VALUES ('Copper', 0, 'Player 2', 7)")
   cursor = g.conn.execute("INSERT INTO decks VALUES ('Copper', 0, 'Player 3', 7)")
   cursor = g.conn.execute("INSERT INTO decks VALUES ('Copper', 0, 'Player 4', 7)")
+
+  #TODO: select 10 random action cards, set all 16 cards to original values
+
   return Response(response=json.dumps(["success"]), status=200, mimetype="application/json") 
  
 
 @app.route('/buy', methods=['POST'])
 def buy():
+  #TODO: fix buy
+  import pdb; pdb.set_trace()
   card = request.form['card']
   playerid = request.form['playerid']
-  cursor = g.conn.execute("SELECT num_cards FROM discards WHERE player_name='Player "+playerid+"' and card_name='"+card+"' and turn_id=0")
+  cursor = g.conn.execute("SELECT num_cards FROM discards WHERE id="+str(playerid)+" and card_name='"+card+"' and turn_id=0")
   num = 0
   for row in cursor:
     num += row["num_cards"]
@@ -174,7 +184,7 @@ def buy():
   if num == 0:
     cursor = g.conn.execute("INSERT INTO discards VALUES ('"+card+"', 0, 'Player "+playerid+"', 1)")
   else:
-    cursor = g.conn.execute("UPDATE discards SET num_cards="+str(num+1)+" WHERE player_name='Player "+playerid+"' and card_name='"+card+"' and turn_id=0")
+    cursor = g.conn.execute("UPDATE discards SET num_cards="+str(num+1)+" WHERE id="+playerid+" and card_name='"+card+"' and turn_id=0")
     
   return Response(response=json.dumps(["success"]), status=200, mimetype="application/json") 
   

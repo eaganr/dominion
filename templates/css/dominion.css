@@ -20,6 +20,7 @@
 
 
 .play-btn {
+  cursor:pointer;
   background-color:#80ff00;
   width:25px;
   border-radius:5px;
@@ -28,12 +29,14 @@
 
 
 .buy-btn {
+  cursor:pointer;
   background-color:#80ff00;
   width:45px;
   border-radius:5px;
   margin:auto;
 }
 .buy-disabled {
+  cursor:default;
   background-color:white;
 }
 

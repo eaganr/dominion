@@ -46,7 +46,7 @@ function drawcards(selector, cardnames, hand) {
 
 }
 
-function newturn() {
+function getgamestate() {
   $.ajax({
     type : "POST",
     url : "/gamestate",
@@ -61,7 +61,6 @@ function newturn() {
       }
       hand = data["hand"];
       hand[2] = "Monument";
-      hand[0] = "Village";
       hand[1] = "Festival";
     
       //setup hand
@@ -85,7 +84,7 @@ function newturn() {
   });
 }
 //display board cards
-newturn();
+getgamestate();
 
 $(".player-select").change(function() {
   var val = parseInt($(this).val());
@@ -93,7 +92,7 @@ $(".player-select").change(function() {
   //show reset button for admin
   if(val !== 0) $(".reset-btn").hide();
   else $(".reset-btn").show();
-  newturn();
+  getgamestate();
 });
 
 function addhand() {
