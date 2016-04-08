@@ -226,6 +226,16 @@ function buycard(card) {
   drawhandvalues();
 }
 
+function endturn() {
+  $.ajax({
+    type: "POST",
+    url: "/endturn",
+    data: {"playerid":playerid},
+    success:function() {
+      console.log("Turn ended");
+    }
+   });
+}
 
 function reset() {
   $.ajax({

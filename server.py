@@ -121,8 +121,11 @@ def draw_one_card(player_name, turn_id):
   size = int(cursor.fetchone()[0])
   if size == 0:
     #Flip discard into deck
-    g.conn.execute("INSERT INTO decks SELECT * discards where player_name = '" + player_name+ "' AND turn_id ="+ str(turn_id))
-    g.conn.execute("DELETE FROM discards where player_name = '" + player_name +"' AND turn_id ="+ str(turn_id))
+    print "INSERT INTO decks SELECT * FROM discards WHERE player_name = '" + player_name+ "' AND turn_id ="+ str(turn_id)
+    g.conn.execute("INSERT INTO decks SELECT * FROM discards WHERE player_name = '" + player_name+ "' AND turn_id ="+ str(turn_id))
+    print "flip worked"
+    g.conn.execute("DELETE FROM discards WHERE player_name = '" + player_name +"' AND turn_id ="+ str(turn_id))
+    print "delete worked"
 
   cursor = g.conn.execute("SELECT card_name FROM (Select card_name,generate_series(1,num_cards) FROM decks WHERE player_name = '" + player_name+ "' AND turn_id =" + str(turn_id) +") AS f ORDER BY RANDOM() LIMIT 1")
   card_name = cursor.fetchone()[0]  
@@ -138,11 +141,17 @@ def draw_one_card(player_name, turn_id):
 
 def drawcards(playerid, num):
   #check if hand already created
-  cursor = g.conn.execute("SELECT MAX(turn_id) from decks WHERE player_name='Player "+playerid+"'");
-  deckmax = cursor.fetchall()[0][0]
+  themax = g.conn.execute("SELECT MAX(turn_id) from decks WHERE player_name='Player "+playerid+"'").fetchone()[0]
+  print themax
+  try:
+    handmax = g.conn.execute("SELECT MAX(turn_id) from hands WHERE player_name='Player "+playerid+"'").fetchone()[0]
+    if handmax > themax:
+      themax = handmax
+  except:
+    pass
   cards = []
   for i in range(0, num):
-    cards.append(draw_one_card("Player "+playerid, deckmax))
+    cards.append(draw_one_card("Player "+playerid, themax))
   return cards
 
 @app.route('/actiondraw', methods=['POST'])
@@ -155,16 +164,40 @@ def actiondraw():
   
 @app.route('/endturn', methods=['POST'])
 def endturn():
+  playerid = request.form["playerid"]
+  turn_id = g.conn.execute("SELECT MAX(turn_id) from hands WHERE player_name='Player "+playerid+"'").fetchone()[0]
   #TODO: figure out how to flip hand into discards properly + snapshot + draw new hand
-  for table in ['decks','discards','hands']:
-    g.conn.execute( 'INSERT INTO ' +table+ ' SELECT card_name, turn_id+1, player_name, num_cards FROM ' + table +' WHERE turn_id = ' + turn_id )
-    g.conn.execute( 'INSERT INTO cards_in_play SELECT card_name, turn_id+1, num_cards FROM card_in_play WHERE turn_id = ' + turn_id )
-    g.conn.execute( 'INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = ' + turn_id )
+  g.conn.execute('INSERT INTO decks SELECT card_name, turn_id+1, player_name, num_cards FROM decks WHERE turn_id = ' + str(turn_id))
 
+  #discards = Buys + hand
+  g.conn.execute('INSERT INTO discards SELECT card_name, turn_id+1, player_name, num_cards FROM discards WHERE turn_id = ' + str(turn_id))
+  cursor = g.conn.execute("SELECT * FROM hands where player_name='Player "+playerid+"' and turn_id=" +str(turn_id))
+  for row in cursor:
+    arr = row.values()
+    arr[1] = arr[1]+1#increase turn_id
+    val =  str(arr).replace("u'", "'").replace("[","(").replace("]",")")
+    try:
+      g.conn.execute("INSERT INTO discards VALUES " + val)
+      print "INSERT INTO discards VALUES " + val
+    except:
+      num = arr[3]
+      g.conn.execute("UPDATE discards SET num_cards = num_cards+"+str(num)+" WHERE player_name='Player "+str(playerid)+"' and card_name='"+arr[0]+"' and turn_id="+str(turn_id+1)) 
+      print "UPDATE discards SET num_cards = num_cards+"+str(num)+" WHERE player_name='Player "+str(playerid)+"' and card_name='"+arr[0]+"' and turn_id="+str(turn_id+1)
+  print "all done"
+
+  g.conn.execute('INSERT INTO cards_in_play SELECT card_name, num_cards, turn_id+1 FROM cards_in_play WHERE turn_id = ' + str(turn_id))
+  g.conn.execute('INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = ' + str(turn_id))
+  
+  return Response(response=json.dumps(["Success"]), status=200, mimetype="application/json")
+  
+  
+
+  '''
   #check if game over
   if int(g.conn.execute("SELECT COUNT(*) FROM cards_in_play where num_cards = 0 and turn_id = " + str(turn_id)).fetchone()[0] ) == 3 or int(g.conn.execute("SELECT COUNT(*) FROM cards_in_play where card_name = 'Province' AND num_cards = 0 AND turn_id = " + str(turn_id)).fetchone()[0]) == 0:
     #Game is Over
     pass
+  '''
 
 @app.route('/gamestate', methods=['POST'])
 def gamestate():
@@ -208,24 +241,22 @@ def reset():
   cursor = g.conn.execute("INSERT INTO decks VALUES ('Copper', 0, 'Player 4', 7)")
 
   #TODO: select 10 random action cards, set all 16 cards to original values
+  g.conn.execute("UPDATE cards_in_play SET num_cards=10 WHERE turn_id=0")
+  g.conn.execute("DELETE FROM cards_in_play WHERE turn_id!=0")
 
   return Response(response=json.dumps(["success"]), status=200, mimetype="application/json") 
  
 
 @app.route('/buy', methods=['POST'])
 def buy():
-  turn_id = g.conn.execute("SELECT MAX(turn_id) FROM decks").fetchone()[0]  
   card = request.form['card']
   playerid = request.form['playerid']
-  cursor = g.conn.execute("SELECT num_cards FROM discards WHERE player_name='Player "+str(playerid)+"' and card_name='"+card+"' and turn_id="+str(turn_id))
-  num = 0
-  for row in cursor:
-    num += row["num_cards"]
-  print num
-  if num == 0:
-    cursor = g.conn.execute("INSERT INTO discards VALUES ('"+card+"', 0, 'Player "+playerid+"', 1)")
-  else:
-    cursor = g.conn.execute("UPDATE discards SET num_cards="+str(num+1)+" WHERE id="+playerid+" and card_name='"+card+"' and turn_id="+str(turn_id))
+  turn_id = g.conn.execute("SELECT MAX(turn_id) FROM hands WHERE player_name='Player "+str(playerid)+"'").fetchone()[0]  
+
+  try:
+    g.conn.execute("INSERT INTO discards VALUES ('"+card+"',"+str(turn_id)+", 'Player "+playerid+"', 1)")
+  except:
+    g.conn.execute("UPDATE discards SET num_cards=num_cards + 1 WHERE player_name='Player "+str(playerid)+"' and card_name='"+card+"' and turn_id="+str(turn_id))
 
   #decrement cards in play
   g.conn.execute("UPDATE cards_in_play SET num_cards = num_cards - 1 WHERE turn_id="+str(turn_id)+" and card_name='"+card+"'")
