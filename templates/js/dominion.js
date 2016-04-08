@@ -16,6 +16,12 @@ function drawcards(selector, cardnames, hand) {
     //setup actions
     var selected = document.querySelectorAll(selector);
     for(var i=0;i<10 && i<cardnames.length;i++) {
+      if(cardnames[i] === "") {
+        selected[i].className = "card";
+        var text = "<div class=\"card-name\">&nbsp;</div><div>&nbsp;</div><div>&nbsp;</div><div>&nbsp;</div><div>&nbsp;</div><div>&nbsp;</div>";
+        selected[i].innerHTML = text;
+        continue;
+      }
       selected[i].className = "card " + cardnames[i].replace(' ', '-');
       var card = board[cardnames[i]];
       var text = "<div class=\"card-name\">" + card["card_name"] + "</div>";
@@ -148,7 +154,6 @@ function drawhandvalues() {
 
 function playaction(btn, cardid) {
   var card = hand[cardid];
-  hand.splice(cardid, 1); 
   if(handvalues["actions"] > 0) {
     //VP need to be added
     //more cards drawn
@@ -159,6 +164,10 @@ function playaction(btn, cardid) {
         data : {"playerid": playerid, "num": board[card]["plus_card"]},
         success:function(data) {
           console.log("New cards: " + data);
+          hand.splice(cardid, 1); 
+          while(hand.indexOf("") > -1) {
+            hand.splice(hand.indexOf(""), 1);
+          }
           hand = hand.concat(data);
           handindex = hand.length - 5;
           drawcards(".hand .card", hand.slice(handindex), true);
@@ -171,10 +180,6 @@ function playaction(btn, cardid) {
     handvalues["actions"] += board[card]["plus_action"] - 1;
     handvalues["buys"] += board[card]["plus_buy"];
     
-    btn.innerHTML = "Played";
-    btn.className = "";
-    btn.onclick = "";
-
     drawhandvalues();
     if(handvalues["actions"] == 0) {
       var btns;
@@ -184,7 +189,12 @@ function playaction(btn, cardid) {
         btns[0].className = "";
       }
     }
-    drawcards(".hand .card", hand.slice(handindex), true);
+    if(board[card]["plus_card"] <= 0) {
+      hand.splice(cardid, 1); 
+      if(hand.length < 5) hand.push("");
+      console.log(hand);
+      drawcards(".hand .card", hand.slice(handindex), true);
+    }
   }
   else {
     alert("No Actions!");
@@ -199,6 +209,9 @@ function changehandindex(n) {
 }
 
 function buycard(card) {
+  var remaining = parseInt($(".board").find("."+card).find("div")[6].innerHTML.split(" ")[0])-1;
+  $(".board").find("."+card).find("div")[6].innerHTML = remaining + " remaining";
+  $(".action ."+card).
   card = card.replace("-", " ");
   $.ajax({
     type : "POST",

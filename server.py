@@ -214,9 +214,10 @@ def reset():
 
 @app.route('/buy', methods=['POST'])
 def buy():
+  turn_id = g.conn.execute("SELECT MAX(turn_id) FROM decks").fetchone()[0]  
   card = request.form['card']
   playerid = request.form['playerid']
-  cursor = g.conn.execute("SELECT num_cards FROM discards WHERE player_name='Player "+str(playerid)+"' and card_name='"+card+"' and turn_id=0")
+  cursor = g.conn.execute("SELECT num_cards FROM discards WHERE player_name='Player "+str(playerid)+"' and card_name='"+card+"' and turn_id="+str(turn_id))
   num = 0
   for row in cursor:
     num += row["num_cards"]
@@ -224,7 +225,10 @@ def buy():
   if num == 0:
     cursor = g.conn.execute("INSERT INTO discards VALUES ('"+card+"', 0, 'Player "+playerid+"', 1)")
   else:
-    cursor = g.conn.execute("UPDATE discards SET num_cards="+str(num+1)+" WHERE id="+playerid+" and card_name='"+card+"' and turn_id=0")
+    cursor = g.conn.execute("UPDATE discards SET num_cards="+str(num+1)+" WHERE id="+playerid+" and card_name='"+card+"' and turn_id="+str(turn_id))
+
+  #decrement cards in play
+  g.conn.execute("UPDATE cards_in_play SET num_cards = num_cards - 1 WHERE turn_id="+str(turn_id)+" and card_name='"+card+"'")
     
   return Response(response=json.dumps(["success"]), status=200, mimetype="application/json") 
   
