@@ -41,7 +41,7 @@ function drawcards(selector, cardnames, hand) {
         text += "<div class=\"buy-btn\" price="+card["cost"]+" onclick=\"buycard('"+cardnames[i]+"')\">Buy: $"+card["cost"]+"</div>"; 
         text += "<div>"+card["num_cards"] + " remaining</div>";
       }
-      if(hand) {
+      if(hand && handvalues["actions"] > 0) {
         if(cardnames[i] in actions) {
           text += "<div class=\"play-btn\" onclick=\"playaction(this, "+i+")\">Play</div>";
           count++;
@@ -68,12 +68,12 @@ function getgamestate() {
         else actions[card] = board[card];
       }
       hand = data["hand"];
-      hand[2] = "Monument";
-      hand[1] = "Moat";
+      hand[4] = "Moat";
+      hand[0] = "Moat";
     
       //setup hand
-      drawcards(".hand .card", hand, true);
       addhand();
+      drawcards(".hand .card", hand, true);
    
       //actions
       actionkeys = Object.keys(actions).sort(function(a,b) {
