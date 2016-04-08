@@ -129,7 +129,7 @@ function addhand(newcards) {
 
 function drawhandvalues() {
   var txt = "Actions: " + handvalues["actions"] + ", Buys: " + handvalues["buys"] + ", Coin: " + handvalues["coin"];
-  document.getElementsByClassName("hand-values")[0].innerHTML = txt;
+  document.getElementsByClassName("hand-values-text")[0].innerHTML = txt;
 
   //check if can buy
   var btns = Array.prototype.slice.call(document.getElementsByClassName("buy-btn"));

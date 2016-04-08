@@ -70,6 +70,15 @@
 	display:block;
 }
 
+.end-turn {
+  position:relative;
+  left:20px;
+  background-color:lightblue;
+  border-radius:5px;
+  width:50px;
+  cursor:pointer;
+}
+
 .player1 {
 	position:absolute;
 	top:250px;
