@@ -137,7 +137,6 @@ def draw_one_card(player_name, turn_id):
   except:
     g.conn.execute("UPDATE hands SET num_cards = num_cards + 1 WHERE card_name ='" + card_name +"' AND player_name = '" + player_name +"' AND turn_id ="+str(turn_id))
   return card_name
-    
 
 def drawcards(playerid, num):
   #check if hand already created
@@ -160,16 +159,15 @@ def actiondraw():
   num = int(request.form['num'])
   cards = drawcards(playerid, num)
   return Response(response=json.dumps(cards), status=200, mimetype="application/json")
-  
-  
+
 @app.route('/endturn', methods=['POST'])
 def endturn():
   playerid = request.form["playerid"]
   turn_id = g.conn.execute("SELECT MAX(turn_id) from hands WHERE player_name='Player "+playerid+"'").fetchone()[0]
-  #TODO: figure out how to flip hand into discards properly + snapshot + draw new hand
+
   g.conn.execute('INSERT INTO decks SELECT card_name, turn_id+1, player_name, num_cards FROM decks WHERE turn_id = ' + str(turn_id))
 
-  #discards = Buys + hand
+  #Insert Hand and Buys in to discards
   g.conn.execute('INSERT INTO discards SELECT card_name, turn_id+1, player_name, num_cards FROM discards WHERE turn_id = ' + str(turn_id))
   cursor = g.conn.execute("SELECT * FROM hands where player_name='Player "+playerid+"' and turn_id=" +str(turn_id))
   for row in cursor:
@@ -184,14 +182,26 @@ def endturn():
       g.conn.execute("UPDATE discards SET num_cards = num_cards+"+str(num)+" WHERE player_name='Player "+str(playerid)+"' and card_name='"+arr[0]+"' and turn_id="+str(turn_id+1)) 
       print "UPDATE discards SET num_cards = num_cards+"+str(num)+" WHERE player_name='Player "+str(playerid)+"' and card_name='"+arr[0]+"' and turn_id="+str(turn_id+1)
   print "all done"
-
-  g.conn.execute('INSERT INTO cards_in_play SELECT card_name, num_cards, turn_id+1 FROM cards_in_play WHERE turn_id = ' + str(turn_id))
-  g.conn.execute('INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = ' + str(turn_id))
   
+  #Delete players hand since it has been put into discard pile
+  g.conn.execute("DELETE hands WHERE player_name='Player "+str(playerid)+ "' AND turn_id = " + str(turn_id) )
+
+  #Draw a new hand for player
+  drawcards( playerid, 5 )
+  
+  #Snapshot end of turn status
+  g.conn.execute("INSERT INTO cards_in_play SELECT card_name, num_cards, turn_id+1 FROM cards_in_play WHERE turn_id = " + str(turn_id))
+  g.conn.execute("INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = " + str(turn_id))
+  g.conn.execute("INSERT INTO discards SELECT player_name, turn_id+1, player_name, num_cards FROM discards WHERE turn_id = " + str(turn_id))
+  g.conn.execute("INSERT INTO decks SELECT player_name, turn_id+1, player_name, num_cards FROM decks WHERE turn_id = " + str(turn_id) ) 
+  g.conn.execute("INSERT INTO hands SELECT player_name, turn_id+1, player_name, num_cards hands decks WHERE turn_id = " + str(turn_id) )
+    #Since hands get modified in turn we need a seperate historical view of them.
+  g.conn.execute("INSERT INTO hands_hist SELECT player_name, turn_id, player_name, num_cards hands decks WHERE turn_id = " + str(turn_id + 1) )
+
+  ##TODO should update display of current game status when turn ends
+  ### maybe by calling and displaying info in playersstatus()
   return Response(response=json.dumps(["Success"]), status=200, mimetype="application/json")
   
-  
-
   '''
   #check if game over
   if int(g.conn.execute("SELECT COUNT(*) FROM cards_in_play where num_cards = 0 and turn_id = " + str(turn_id)).fetchone()[0] ) == 3 or int(g.conn.execute("SELECT COUNT(*) FROM cards_in_play where card_name = 'Province' AND num_cards = 0 AND turn_id = " + str(turn_id)).fetchone()[0]) == 0:
@@ -222,7 +232,6 @@ def gamestate():
 
   return Response(response=json.dumps(result), status=200, mimetype="application/json")
 
-
 @app.route('/reset', methods=['POST'])
 def reset():
   #delete everything
@@ -240,12 +249,43 @@ def reset():
   cursor = g.conn.execute("INSERT INTO decks VALUES ('Copper', 0, 'Player 3', 7)")
   cursor = g.conn.execute("INSERT INTO decks VALUES ('Copper', 0, 'Player 4', 7)")
 
-  #TODO: select 10 random action cards, set all 16 cards to original values
-  g.conn.execute("UPDATE cards_in_play SET num_cards=10 WHERE turn_id=0")
-  g.conn.execute("DELETE FROM cards_in_play WHERE turn_id!=0")
+  #Clear cards in play out  
+  g.conn.execute("DELETE FROM cards_in_play");
+  g.conn.execute("INSERT INTO cards_in_play SELECT card_name, 10 as num_cards, 0 as turn_id FROM all_cards WHERE card_name in ('Copper','Silver','Gold','Estate','Duchy','Province');" )
+
+  g.conn.execute("INSERT INTO cards_in_play SELECT card_name, 10 AS num_cards, 0 AS turn_id FROM all_cards WHERE card_name NOT IN  ('Copper','Silver','Gold','Estate','Duchy','Province') ORDER BY RANDOM() LIMIT 10;" )
 
   return Response(response=json.dumps(["success"]), status=200, mimetype="application/json") 
  
+@app.route('/playersstatus',methods=['POST'])
+def playersstatus():
+  turn_id = g.conn.execute("SELECT MAX(turn_id) from hands WHERE player_name='Player "+playerid+"'").fetchone()[0]
+  ret = []
+  player_ids = [1,2,3,4]
+  for player_id in player_ids:
+    player_info = [ "Player " + str(player_id)]
+    #Get deck,discards,hand size
+    player_info.append(g.conn.execute("SELECT COUNT(*) FROM decks where player_name = 'Player "+str(player_id)+"' AND turn_id = " + str(turn_id) ).fetchone()[0])
+    player_info.append(g.conn.execute("SELECT COUNT(*) FROM discards where player_name = 'Player "+str(player_id)+"' AND turn_id = " + str(turn_id) ).fetchone()[0])
+
+
+    #Get victory point value
+    v_points = g.conn.execute("Select SUM(a.victory_point_value * b.num_cards) as card_v_points FROM all_players_cards b join all_cards a on a.card_name=b.card_name where player_name = 'Player " + str(player_id) + "' AND turn_id =" + str(turn_id) + " group by player_name;" ).fetchone()[0]
+    v_points += g.conn.execute("SELECT num_victory_points from num_victory_points where player_name = 'Player " + str(player_id) + "' AND turn_id =" + str(turn_id) ).fetchone()[0]
+    player_info.append(v_points)
+    ret.append(player_info)
+  #Ret is a matrix of the form
+  # Player Name, Num in Deck, Num in discard, Num total victory points
+  # Player 1, ##, ##, ##
+  # Player 2, ##, ##, ## etc.
+  return( ret )
+
+@app.route('/historicalview', methods=['POST'])
+def historicalview(player_id,turn_id):
+  '''Given a player_name and a turn id will execute sql to return the status of that players deck,hand, and discard at that time.'''
+  g.conn.execute( "SELECT card_name, num_cards FROM decks WHERE player_name = 'Player " + str(player_id) + "' AND turn_id =" + str(turn_id) )
+  g.conn.execute( "SELECT card_name, num_cards FROM discards WHERE player_name = 'Player " + str(player_id) + "' AND turn_id =" + str(turn_id) )
+  g.conn.execute( "SELECT card_name, num_cards FROM hands_hist WHERE player_name = 'Player " + str(player_id) + "' AND turn_id =" + str(turn_id) )
 
 @app.route('/buy', methods=['POST'])
 def buy():
@@ -262,7 +302,7 @@ def buy():
   g.conn.execute("UPDATE cards_in_play SET num_cards = num_cards - 1 WHERE turn_id="+str(turn_id)+" and card_name='"+card+"'")
     
   return Response(response=json.dumps(["success"]), status=200, mimetype="application/json") 
-  
+
 
 @app.route('/js/<path:path>')
 def js(path):
@@ -303,7 +343,6 @@ def add():
 def login():
     abort(401)
     this_is_never_executed()
-
 
 if __name__ == "__main__":
   import click
