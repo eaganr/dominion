@@ -176,27 +176,14 @@ def endturn():
     val =  str(arr).replace("u'", "'").replace("[","(").replace("]",")")
     try:
       g.conn.execute("INSERT INTO discards VALUES " + val)
-      print "INSERT INTO discards VALUES " + val
     except:
       num = arr[3]
       g.conn.execute("UPDATE discards SET num_cards = num_cards+"+str(num)+" WHERE player_name='Player "+str(playerid)+"' and card_name='"+arr[0]+"' and turn_id="+str(turn_id+1)) 
-      print "UPDATE discards SET num_cards = num_cards+"+str(num)+" WHERE player_name='Player "+str(playerid)+"' and card_name='"+arr[0]+"' and turn_id="+str(turn_id+1)
-  print "all done"
   
-  #Delete players hand since it has been put into discard pile
-  g.conn.execute("DELETE hands WHERE player_name='Player "+str(playerid)+ "' AND turn_id = " + str(turn_id) )
-
-  #Draw a new hand for player
-  drawcards( playerid, 5 )
   
   #Snapshot end of turn status
   g.conn.execute("INSERT INTO cards_in_play SELECT card_name, num_cards, turn_id+1 FROM cards_in_play WHERE turn_id = " + str(turn_id))
   g.conn.execute("INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = " + str(turn_id))
-  g.conn.execute("INSERT INTO discards SELECT player_name, turn_id+1, player_name, num_cards FROM discards WHERE turn_id = " + str(turn_id))
-  g.conn.execute("INSERT INTO decks SELECT player_name, turn_id+1, player_name, num_cards FROM decks WHERE turn_id = " + str(turn_id) ) 
-  g.conn.execute("INSERT INTO hands SELECT player_name, turn_id+1, player_name, num_cards hands decks WHERE turn_id = " + str(turn_id) )
-    #Since hands get modified in turn we need a seperate historical view of them.
-  g.conn.execute("INSERT INTO hands_hist SELECT player_name, turn_id, player_name, num_cards hands decks WHERE turn_id = " + str(turn_id + 1) )
 
   ##TODO should update display of current game status when turn ends
   ### maybe by calling and displaying info in playersstatus()

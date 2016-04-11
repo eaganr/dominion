@@ -68,8 +68,6 @@ function getgamestate() {
         else actions[card] = board[card];
       }
       hand = data["hand"];
-      hand[4] = "Moat";
-      hand[0] = "Moat";
     
       //setup hand
       addhand();
@@ -235,6 +233,13 @@ function endturn() {
       console.log("Turn ended");
     }
    });
+  handvalues["buys"] = 0;
+  handvalues["actions"] = 0;
+  handvalues["coin"] = 0;
+  drawhandvalues();
+  hand = ["","","","",""];
+  handindex = 0;
+  drawcards(".hand .card", hand.slice(handindex), true);
 }
 
 function reset() {
