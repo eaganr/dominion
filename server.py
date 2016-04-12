@@ -196,6 +196,13 @@ def endturn():
   print "INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = " + str(turn_id)
   g.conn.execute("INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = " + str(turn_id))
 
+  #Next player's turn now
+  g.conn.execute("UPDATE players SET isyourturn = false where player_name = 'Player " + str(playerid) + "'" )
+  next_player_id = playerid + 1
+  if next_player_id == 5:
+    next_player_id = 1
+  g.conn.execute("UPDATE players SET isyourturn = true  where player_name = 'Player " + str(next_player_id) + "'" )
+
   ##TODO should update display of current game status when turn ends
   ### maybe by calling and displaying info in playersstatus()
   return Response(response=json.dumps(["Success"]), status=200, mimetype="application/json")
@@ -224,9 +231,14 @@ def gamestate():
   if request.form['playerid'] == "0":
     result["hand"] = []
   else:
-    result["hand"] = drawcards(request.form['playerid'], 5)
-    cursor = g.conn.execute("SELECT isyourturn FROM players where id="+request.form['playerid'])
-    result["isyourturn"] = cursor.fetchone()[0]
+    print(234,request.form['playerid'])
+    isyourturn = g.conn.execute("SELECT isyourturn FROM players where id="+request.form['playerid']).fetchone()[0]
+    #Only draw hand if it is your turn    
+    if isyourturn == True:
+      result["hand"] = drawcards(request.form['playerid'], 5)
+    else:
+      result["hand"] = []
+    result["isyourturn"] = isyourturn
 
   return Response(response=json.dumps(result), status=200, mimetype="application/json")
 
@@ -236,7 +248,12 @@ def reset():
   cursor = g.conn.execute("DELETE FROM hands")
   cursor = g.conn.execute("DELETE FROM decks")
   cursor = g.conn.execute("DELETE FROM discards")
-  
+  cursor = g.conn.execute("DELETE FROM num_victory_points")
+  g.conn.execute("DELETE FROM cards_in_play")
+  #Set Player 1 to go first
+  cursor = g.conn.execute("UPDATE players SET isyourturn = true WHERE player_name = 'Player 1'")
+  cursor = g.conn.execute("UPDATE players SET isyourturn = false WHERE NOT player_name = 'Player 1'")
+
   #add everything back
   cursor = g.conn.execute("INSERT INTO decks VALUES ('Estate', 0, 'Player 1', 3)")
   cursor = g.conn.execute("INSERT INTO decks VALUES ('Estate', 0, 'Player 2', 3)")
@@ -246,9 +263,14 @@ def reset():
   cursor = g.conn.execute("INSERT INTO decks VALUES ('Copper', 0, 'Player 2', 7)")
   cursor = g.conn.execute("INSERT INTO decks VALUES ('Copper', 0, 'Player 3', 7)")
   cursor = g.conn.execute("INSERT INTO decks VALUES ('Copper', 0, 'Player 4', 7)")
+  
+  #Give everyone initially no victory points
+  cursor = g.conn.execute("INSERT INTO num_victory_points VALUES ('Player 1', 0, 0)")
+  cursor = g.conn.execute("INSERT INTO num_victory_points VALUES ('Player 2', 0, 0)")
+  cursor = g.conn.execute("INSERT INTO num_victory_points VALUES ('Player 3', 0, 0)")
+  cursor = g.conn.execute("INSERT INTO num_victory_points VALUES ('Player 4', 0, 0)")
 
   #Clear cards in play out  
-  g.conn.execute("DELETE FROM cards_in_play");
   g.conn.execute("INSERT INTO cards_in_play SELECT card_name, 10 as num_cards, 0 as turn_id FROM all_cards WHERE card_name in ('Copper','Silver','Gold','Estate','Duchy','Province');" )
 
   g.conn.execute("INSERT INTO cards_in_play SELECT card_name, 10 AS num_cards, 0 AS turn_id FROM all_cards WHERE card_name NOT IN  ('Copper','Silver','Gold','Estate','Duchy','Province') ORDER BY RANDOM() LIMIT 10;" )
