@@ -1,8 +1,5 @@
 #!/usr/bin/env python2.7
 
-#TODO: admin functions: go back and forward turn
-  #another page with table of decks, hands, and discards, and num VP for one player at a certain turn
-#TODO: add +VP method, save in num_victory_points table
 #TODO: table top right with turn id, current state of victory points, and total cards each player has (remove player 1, 2 etc in GUI)
 
 """
@@ -43,12 +40,10 @@ app = Flask(__name__, template_folder=tmpl_dir)
 #
 DATABASEURI = "postgresql://rse2119:1437@w4111a.eastus.cloudapp.azure.com/proj1part2"
 
-
 #
 # This line creates a database engine that knows how to connect to the URI above.
 #
 engine = create_engine(DATABASEURI)
-
 
 @app.before_request
 def before_request():
