@@ -196,23 +196,21 @@ def endturn():
   print "INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = " + str(turn_id)
   g.conn.execute("INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = " + str(turn_id))
 
-  #Next player's turn now
-  g.conn.execute("UPDATE players SET isyourturn = false where player_name = 'Player " + str(playerid) + "'" )
-  next_player_id = playerid + 1
-  if next_player_id == 5:
-    next_player_id = 1
-  g.conn.execute("UPDATE players SET isyourturn = true  where player_name = 'Player " + str(next_player_id) + "'" )
+  #Next player's turn now unless game is over
+  if int(g.conn.execute("SELECT COUNT(*) FROM cards_in_play where num_cards = 0 and turn_id = " + str(turn_id)).fetchone()[0] ) >= 3 or int(g.conn.execute("SELECT COUNT(*) FROM cards_in_play where card_name = 'Province' AND num_cards = 0 AND turn_id = " + str(turn_id)).fetchone()[0]) == 1:
+    g.conn.execute("UPDATE players SET isyourturn = false" )
+    print( "The game is over!" )
+  else:
+    g.conn.execute("UPDATE players SET isyourturn = false where player_name = 'Player " + str(playerid) + "'" )
+    next_player_id = int(playerid) + 1
+    if next_player_id == 5:
+      next_player_id = 1
+    print( next_player_id, playerid,209 )
+    g.conn.execute("UPDATE players SET isyourturn = true  where player_name = 'Player " + str(next_player_id) + "'" )
 
   ##TODO should update display of current game status when turn ends
   ### maybe by calling and displaying info in playersstatus()
   return Response(response=json.dumps(["Success"]), status=200, mimetype="application/json")
-  
-  '''
-  #check if game over
-  if int(g.conn.execute("SELECT COUNT(*) FROM cards_in_play where num_cards = 0 and turn_id = " + str(turn_id)).fetchone()[0] ) == 3 or int(g.conn.execute("SELECT COUNT(*) FROM cards_in_play where card_name = 'Province' AND num_cards = 0 AND turn_id = " + str(turn_id)).fetchone()[0]) == 0:
-    #Game is Over
-    pass
-  '''
 
 @app.route('/gamestate', methods=['POST'])
 def gamestate():
