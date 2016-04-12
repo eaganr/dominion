@@ -113,6 +113,8 @@ def history():
     context["discards"].append(row)
     context["discards_size"] += row[3]
 
+  num_points = g.conn.execute("SELECT num_victory_points FROM num_victory_points WHERE player_name = 'Player "+playerid+"' and turn_id="+turnid).fetchone()[0]
+  context["num_victory_points"] = num_points
   return render_template("history.html", **context)
 
 
