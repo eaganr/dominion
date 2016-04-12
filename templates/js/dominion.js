@@ -155,6 +155,15 @@ function playaction(btn, cardid) {
   if(handvalues["actions"] > 0) {
     //VP need to be added
     //more cards drawn
+    if(board[card]["plus_victory_points"] > 0 ) {
+      $.ajax({
+        type : "POST",
+        url : "/plusvictorypoints",
+        data : {"playerid": playerid, "num": board[card]["plus_victory_points"]}
+      });
+    }
+
+
     if(board[card]["plus_card"] > 0) {
       $.ajax({
         type : "POST",
@@ -207,21 +216,26 @@ function changehandindex(n) {
 }
 
 function buycard(card) {
-  var remaining = parseInt($(".board").find("."+card).find("div")[6].innerHTML.split(" ")[0])-1;
-  $(".board").find("."+card).find("div")[6].innerHTML = remaining + " remaining";
-  $(".action ."+card).
-  card = card.replace("-", " ");
-  $.ajax({
-    type : "POST",
-    url : "/buy",
-    data : {"playerid": playerid, "card": card},
-    success:function() {
-      console.log("Bought " + card);
-    }
-  });
-  handvalues["buys"] = handvalues["buys"] - 1;
-  handvalues["coin"] = handvalues["coin"] - board[card]["cost"];
-  drawhandvalues();
+  if(handvalues["buys"] > 0) {
+    var remaining = parseInt($(".board").find("."+card).find("div")[6].innerHTML.split(" ")[0])-1;
+    $(".board").find("."+card).find("div")[6].innerHTML = remaining + " remaining";
+    card = card.replace("-", " ");
+    console.log(card);
+    $.ajax({
+      type : "POST",
+      url : "/buy",
+      data : {"playerid": playerid, "card": card},
+      success:function() {
+        console.log("Bought " + card);
+      }
+    });
+    handvalues["buys"] = handvalues["buys"] - 1;
+    handvalues["coin"] = handvalues["coin"] - board[card]["cost"];
+    drawhandvalues();
+  }
+  else {
+    alert("No Buys Left!");
+  }
 }
 
 function endturn() {

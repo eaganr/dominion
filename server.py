@@ -153,6 +153,14 @@ def drawcards(playerid, num):
     cards.append(draw_one_card("Player "+playerid, themax))
   return cards
 
+@app.route('/plusvictorypoints', methods=['POST'])
+def plusvictorypoints():
+  playerid = request.form['playerid']
+  num = int( request.form['num'])
+  turn_id = most_recent_turn_id()
+  g.conn.execute("UPDATE TABLE num_victory_points SET num_victory_points = num_victory_points + 1 WHERE player_name='Player "+playerid+"' and turn_id=" +str(turn_id) )
+
+
 @app.route('/actiondraw', methods=['POST'])
 def actiondraw():
   playerid = request.form['playerid']
@@ -179,10 +187,11 @@ def endturn():
     except:
       num = arr[3]
       g.conn.execute("UPDATE discards SET num_cards = num_cards+"+str(num)+" WHERE player_name='Player "+str(playerid)+"' and card_name='"+arr[0]+"' and turn_id="+str(turn_id+1)) 
-  
+
   
   #Snapshot end of turn status
   g.conn.execute("INSERT INTO cards_in_play SELECT card_name, num_cards, turn_id+1 FROM cards_in_play WHERE turn_id = " + str(turn_id))
+  print "INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = " + str(turn_id)
   g.conn.execute("INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = " + str(turn_id))
 
   ##TODO should update display of current game status when turn ends
