@@ -11,6 +11,17 @@ var hand = [];
 var handvalues = {};
 var handindex = 0;
 
+//get current turn
+$.ajax({
+  type : "POST",
+  url : "/getturn",
+  success:function (data) {
+    playerid = parseInt(data[0]);
+    document.getElementById("player").innerHTML = "Player " + playerid;
+    getgamestate();
+  }
+});
+
 
 function drawcards(selector, cardnames, hand) {
     //setup actions
@@ -43,7 +54,7 @@ function drawcards(selector, cardnames, hand) {
       }
       if(hand && handvalues["actions"] > 0) {
         if(cardnames[i] in actions) {
-          text += "<div class=\"play-btn\" onclick=\"playaction(this, "+i+")\">Play</div>";
+          text += "<div class=\"play-btn\" onclick=\"playaction(this, '"+cardnames[i]+"')\">Play</div>";
           count++;
         }
         else text += "<div>&nbsp;</div>";
@@ -99,8 +110,6 @@ function getgamestate() {
     }
   });
 }
-//display board cards
-getgamestate();
 
 $(".player-select").change(function() {
   var val = parseInt($(this).val());
@@ -160,16 +169,18 @@ function drawhandvalues() {
 
 }
 
-function playaction(btn, cardid) {
-  var card = hand[cardid];
+function playaction(btn, card) {
   if(handvalues["actions"] > 0) {
     //VP need to be added
     //more cards drawn
-    if(board[card]["plus_victory_points"] > 0 ) {
+    if(board[card]["plus_victory_point"] > 0 ) {
       $.ajax({
         type : "POST",
         url : "/plusvictorypoints",
-        data : {"playerid": playerid, "num": board[card]["plus_victory_points"]}
+        data : {"playerid": playerid, "num": board[card]["plus_victory_point"]},
+        success:function(data) {
+          console.log("Plus " + board[card]["plus_victory_point"] + " VP!");
+        }
       });
     }
 
@@ -181,7 +192,7 @@ function playaction(btn, cardid) {
         data : {"playerid": playerid, "num": board[card]["plus_card"]},
         success:function(data) {
           console.log("New cards: " + data);
-          hand.splice(cardid, 1); 
+          hand.splice(hand.indexOf(card), 1); 
           while(hand.indexOf("") > -1) {
             hand.splice(hand.indexOf(""), 1);
           }
@@ -207,9 +218,8 @@ function playaction(btn, cardid) {
       }
     }
     if(board[card]["plus_card"] <= 0) {
-      hand.splice(cardid, 1); 
+      hand.splice(hand.indexOf(card), 1); 
       if(hand.length < 5) hand.push("");
-      console.log(hand);
       drawcards(".hand .card", hand.slice(handindex), true);
     }
   }
@@ -228,20 +238,22 @@ function changehandindex(n) {
 function buycard(card) {
   if(handvalues["buys"] > 0) {
     var remaining = parseInt($(".board").find("."+card).find("div")[6].innerHTML.split(" ")[0])-1;
-    $(".board").find("."+card).find("div")[6].innerHTML = remaining + " remaining";
-    card = card.replace("-", " ");
-    console.log(card);
-    $.ajax({
-      type : "POST",
-      url : "/buy",
-      data : {"playerid": playerid, "card": card},
-      success:function() {
-        console.log("Bought " + card);
-      }
-    });
-    handvalues["buys"] = handvalues["buys"] - 1;
-    handvalues["coin"] = handvalues["coin"] - board[card]["cost"];
-    drawhandvalues();
+    if(remaining > -1) {
+      $(".board").find("."+card).find("div")[6].innerHTML = remaining + " remaining";
+      card = card.replace("-", " ");
+      $.ajax({
+        type : "POST",
+        url : "/buy",
+        data : {"playerid": playerid, "card": card},
+        success:function() {
+          console.log("Bought " + card);
+        }
+      });
+      handvalues["buys"] = handvalues["buys"] - 1;
+      handvalues["coin"] = handvalues["coin"] - board[card]["cost"];
+      drawhandvalues();
+    }
+    else alert("None remaining!");
   }
   else {
     alert("No Buys Left!");

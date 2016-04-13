@@ -145,25 +145,26 @@ def draw_one_card(player_name, turn_id):
 
 def drawcards(playerid, num):
   #check if hand already created
-  themax = g.conn.execute("SELECT MAX(turn_id) from decks WHERE player_name='Player "+playerid+"'").fetchone()[0]
-  try:
-    handmax = g.conn.execute("SELECT MAX(turn_id) from hands WHERE player_name='Player "+playerid+"'").fetchone()[0]
-    if handmax > themax:
-      themax = handmax
-  except:
-    pass
+  themax = g.conn.execute("SELECT MAX(turn_id) FROM cards_in_play").fetchone()[0]
   cards = []
   for i in range(0, num):
     cards.append(draw_one_card("Player "+playerid, themax))
   return cards
 
 
+@app.route('/getturn', methods=['POST'])
+def getturn():
+  playerid = g.conn.execute("SELECT id FROM players WHERE isyourturn=true").fetchone()[0]
+  return Response(response=json.dumps([playerid]), status=200, mimetype="application/json")
+
+
 @app.route('/plusvictorypoints', methods=['POST'])
 def plusvictorypoints():
   playerid = request.form['playerid']
   num = int( request.form['num'])
-  turn_id = most_recent_turn_id()
-  g.conn.execute("UPDATE TABLE num_victory_points SET num_victory_points = num_victory_points + 1 WHERE player_name='Player "+playerid+"' and turn_id=" +str(turn_id) )
+  turn_id = g.conn.execute("SELECT MAX(turn_id) FROM cards_in_play").fetchone()[0]
+  g.conn.execute("UPDATE num_victory_points SET num_victory_points = num_victory_points + 1 WHERE player_name='Player "+playerid+"' and turn_id=" +str(turn_id) )
+  return Response(response=json.dumps(["Success"]), status=200, mimetype="application/json")
 
 @app.route('/actiondraw', methods=['POST'])
 def actiondraw():
@@ -232,7 +233,15 @@ def gamestate():
     isyourturn = g.conn.execute("SELECT isyourturn FROM players where id="+request.form['playerid']).fetchone()[0]
     #Only draw hand if it is your turn    
     if isyourturn == True:
-      result["hand"] = drawcards(request.form['playerid'], 5)
+      print "SELECT card_name FROM (SELECT card_name,generate_series(1,num_cards) FROM hands WHERE player_id='Player "+str(request.form['playerid'])+"' and turn_id="+str(turn_id)+") AS f"
+      cursor = g.conn.execute("SELECT card_name FROM (SELECT card_name,generate_series(1,num_cards) FROM hands WHERE player_name='Player "+str(request.form['playerid'])+"' and turn_id="+str(turn_id)+") AS f")
+      arr = []
+      for row in cursor:
+        arr.append(row[0])
+      if len(arr) == 0:
+        result["hand"] = drawcards(request.form['playerid'], 5)
+      else:
+        result["hand"] = arr
     else:
       result["hand"] = []
     result["isyourturn"] = isyourturn
