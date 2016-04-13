@@ -1,4 +1,4 @@
-var playerid = 0;
+var playerid = 1;
 var turnid = 0;
 
 var board = {};
@@ -255,6 +255,10 @@ function endturn() {
     data: {"playerid":playerid},
     success:function() {
       console.log("Turn ended");
+      playerid++;
+      if(playerid > 4) playerid = 1;
+      document.getElementById("player").innerHTML = "Player " + playerid;
+      getgamestate();
     }
    });
   handvalues["buys"] = 0;

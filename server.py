@@ -157,6 +157,7 @@ def drawcards(playerid, num):
     cards.append(draw_one_card("Player "+playerid, themax))
   return cards
 
+
 @app.route('/plusvictorypoints', methods=['POST'])
 def plusvictorypoints():
   playerid = request.form['playerid']
