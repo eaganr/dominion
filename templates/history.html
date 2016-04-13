@@ -66,6 +66,9 @@
 </div>
 <div style="position:absolute;top:150px;left:950px;">
   <h3>Num Victory Points: {{num_victory_points}} points</h3>
+  {% for n in victory_cards %}
+    <div>{{n[1]}}: {{n[3]}}</div>
+  {% endfor %}
 </div>
 </body>
 

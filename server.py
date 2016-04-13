@@ -109,8 +109,21 @@ def history():
     context["discards"].append(row)
     context["discards_size"] += row[3]
 
+  #Get victory_points and cards
+  context["victory_cards"] = []
+  #First from just victory_tokens
   num_points = g.conn.execute("SELECT num_victory_points FROM num_victory_points WHERE player_name = 'Player "+playerid+"' and turn_id="+turnid).fetchone()[0]
-  context["num_victory_points"] = num_points
+  context["num_victory_points"] = int(num_points)
+  if num_points > 0:
+    context["victory_cards"].append(["",unicode("Victory Tokens"),"",int(num_points)])
+
+  #Then from victory cards
+  cursor = g.conn.execute("SELECT * FROM all_players_cards WHERE card_name IN ('Province','Duchy','Estate') AND player_name = 'Player " +
+                            playerid+"' AND turn_id="+turnid)
+  card_point_map = { 'Province' : 6, 'Duchy' : 3, 'Estate' : 1 }
+  for row in cursor:
+    context["victory_cards"].append(row)
+    context["num_victory_points"] += card_point_map[str(row[1])] * int(row[3])
   return render_template("history.html", **context)
 
 def draw_one_card(player_name, turn_id):
@@ -227,24 +240,21 @@ def gamestate():
       result["hand"] = []
     result["isyourturn"] = isyourturn
 
-    
+
   result["turnid"] = turn_id
   result["gamestatus"] = []
   for i in range(1,5):
-    num_cards = g.conn.execute("SELECT SUM(num_cards) FROM decks WHERE player_name='Player "+str(i)+"' and turn_id="+str(turn_id)).fetchone()[0]
-    if num_cards is None:
-      num_cards = 0
-    hands = g.conn.execute("SELECT SUM(num_cards) FROM hands WHERE player_name='Player "+str(i)+"' and turn_id="+str(turn_id)).fetchone()[0]
-    if hands is not None:
-      num_cards += hands
-    discards = g.conn.execute("SELECT SUM(num_cards) FROM discards WHERE player_name='Player "+str(i)+"' and turn_id="+str(turn_id)).fetchone()[0]
-    if discards is not None:
-      num_cards += discards
-    #TODO: should also calculate victory points in hand
-    vp = g.conn.execute("SELECT num_victory_points FROM num_victory_points WHERE player_name='Player "+str(i)+"' and turn_id="+str(turn_id)).fetchone()[0]
-    arr = ["Player " + str(i), num_cards, vp]
-    result["gamestatus"].append(arr)
+    num_cards = g.conn.execute("Select Sum(num_cards) FROM all_players_cards WHERE player_name = 'Player " +
+                                  str(i) + "' AND turn_id =" + str(turn_id) ).fetchone()[0]
 
+    v_points = g.conn.execute("Select SUM(a.victory_point_value * b.num_cards) AS card_v_points" + 
+                              " FROM all_players_cards b JOIN all_cards a ON a.card_name=b.card_name" + 
+                              " WHERE player_name = 'Player " + str(i) + "' AND turn_id =" + str(turn_id) + 
+                              " GROUP BY player_name;" ).fetchone()[0]
+    v_points += g.conn.execute("SELECT num_victory_points FROM num_victory_points WHERE player_name = 'Player " + 
+                                  str(i) + "' AND turn_id =" + str(turn_id) ).fetchone()[0]
+
+    result["gamestatus"].append(["Player " + str(i), int(num_cards), int(v_points)])
 
   return Response(response=json.dumps(result), status=200, mimetype="application/json")
 
