@@ -21,6 +21,13 @@
   position:relative;
 }
 
+.description {
+  position:absolute;
+  left:20px;
+  top:10px;
+  width:300px;
+  font-size:14px;
+}
 
 .play-btn {
   cursor:pointer;

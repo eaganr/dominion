@@ -16,6 +16,17 @@
   <p><a href="/history?playerid=1&turnid=0">History</a></p>
 </div>
 
+<div class="description">
+  <h1>Dominion</h1>
+  <p>Dominion is card-based game. On your turn you will draw 5 cards from your deck. The game ends when all "Province" cards have been bought, or 3 action cards have been sold out.
+  The player with the most victory points at the end of the game is the winner.</p>
+  <p>For each turn, you have 1 action, 1 buy and however many coins are in your hand.
+  When you play an action, your number of actions for the turn decrements. Actions can have +Cards, which means you draw more cards from your deck for this turn.
+  They can have +$, which means you have more coins just for that hand. They can have +Actions, which means you get more actions for the turn.
+  They can have +Buys, which means you can buy extra cards on this turn. They can have +VP, which means you get additional victory point tokens.</p>
+  <p>When your turn is over, press the "End Turn" button.</p>
+</div>
+
 <div class="score">
   <div id="turnid"></div>
   <table>
@@ -25,7 +36,7 @@
 <div class="you">
 	<div class="deck">
 		<div>Deck</div>
-		<div class="card Back"></div>
+		<div class="card" id="num-deck"></div>
 	</div>
 	<div class="hand">
 		<div><button onclick="changehandindex(-1)"><-</button>Hand<button onclick="changehandindex(1)">-></button></div>
@@ -38,7 +49,7 @@
 	</div>
 	<div class="discard">
 		<div>Discards</div>
-		<div class="card Back"></div>
+		<div class="card" id="num-discards"></div>
 	</div>
 </div>
 

@@ -248,6 +248,8 @@ def gamestate():
 
 
   result["turnid"] = turn_id
+  result["deckcount"] = g.conn.execute("SELECT SUM(num_cards) FROM decks WHERE player_name='Player "+ request.form['playerid']+"' and turn_id="+str(turn_id)).fetchone()[0]
+  result["discardscount"] = g.conn.execute("SELECT SUM(num_cards) FROM discards WHERE player_name='Player "+ request.form['playerid']+"' and turn_id="+str(turn_id)).fetchone()[0]
   result["gamestatus"] = []
   for i in range(1,5):
     num_cards = g.conn.execute("Select Sum(num_cards) FROM all_players_cards WHERE player_name = 'Player " +

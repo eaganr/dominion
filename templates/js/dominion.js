@@ -93,6 +93,9 @@ function getgamestate() {
       //treasures and estates
       drawcards(".money-estates .card", tekeys);
 
+      //deck and discards
+      document.getElementById("num-deck").innerHTML = data["deckcount"];
+      document.getElementById("num-discards").innerHTML = data["discardscount"]? data["discardscount"] : 0;
 
       //scoreboard
       document.getElementById("turnid").innerHTML = "Turn: " + data["turnid"]; 
@@ -200,6 +203,20 @@ function playaction(btn, card) {
           handindex = hand.length - 5;
           drawcards(".hand .card", hand.slice(handindex), true);
           addhand(data);
+          //change deck
+          var d = parseInt(document.getElementById("num-deck").innerHTML);
+          console.log(board[card]);
+          if(d < board[card]["plus_card"]) {
+            var dis = parseInt(document.getElementById("num-discards").innerHTML);
+            d = d + dis - board[card]["plus_card"];
+            dis = 0;
+            document.getElementById("num-deck").innerHTML = d;
+            document.getElementById("num-discards").innerHTML = dis;
+          }
+          else {
+            d -= board[card]["plus_card"];
+            document.getElementById("num-deck").innerHTML = d;
+          }
         }
       });
     }
@@ -252,6 +269,11 @@ function buycard(card) {
       handvalues["buys"] = handvalues["buys"] - 1;
       handvalues["coin"] = handvalues["coin"] - board[card]["cost"];
       drawhandvalues();
+
+      //update discards
+      var dis = parseInt(document.getElementById("num-discards").innerHTML)+1
+      document.getElementById("num-discards").innerHTML = dis;
+  
     }
     else alert("None remaining!");
   }
