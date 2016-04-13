@@ -94,7 +94,7 @@ function getgamestate() {
       drawcards(".money-estates .card", tekeys);
 
       //deck and discards
-      document.getElementById("num-deck").innerHTML = data["deckcount"];
+      document.getElementById("num-deck").innerHTML = data["deckcount"]? data["deckcount"] : 0;
       document.getElementById("num-discards").innerHTML = data["discardscount"]? data["discardscount"] : 0;
 
       //scoreboard
