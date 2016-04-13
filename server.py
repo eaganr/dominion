@@ -76,6 +76,7 @@ def teardown_request(exception):
 def index():
   context = {}
 
+
   return render_template("index.html", **context)
 
 @app.route('/history', methods=['GET'])
@@ -112,17 +113,13 @@ def history():
   context["num_victory_points"] = num_points
   return render_template("history.html", **context)
 
-
 def draw_one_card(player_name, turn_id):
   cursor = g.conn.execute("SELECT count(*) FROM decks WHERE player_name='" + player_name + "' AND turn_id ="+ str(turn_id))
   size = int(cursor.fetchone()[0])
   if size == 0:
     #Flip discard into deck
-    print "INSERT INTO decks SELECT * FROM discards WHERE player_name = '" + player_name+ "' AND turn_id ="+ str(turn_id)
     g.conn.execute("INSERT INTO decks SELECT * FROM discards WHERE player_name = '" + player_name+ "' AND turn_id ="+ str(turn_id))
-    print "flip worked"
     g.conn.execute("DELETE FROM discards WHERE player_name = '" + player_name +"' AND turn_id ="+ str(turn_id))
-    print "delete worked"
 
   cursor = g.conn.execute("SELECT card_name FROM (Select card_name,generate_series(1,num_cards) FROM decks WHERE player_name = '" + player_name+ "' AND turn_id =" + str(turn_id) +") AS f ORDER BY RANDOM() LIMIT 1")
   card_name = cursor.fetchone()[0]  
@@ -138,7 +135,6 @@ def draw_one_card(player_name, turn_id):
 def drawcards(playerid, num):
   #check if hand already created
   themax = g.conn.execute("SELECT MAX(turn_id) from decks WHERE player_name='Player "+playerid+"'").fetchone()[0]
-  print themax
   try:
     handmax = g.conn.execute("SELECT MAX(turn_id) from hands WHERE player_name='Player "+playerid+"'").fetchone()[0]
     if handmax > themax:
@@ -188,7 +184,6 @@ def endturn():
   
   #Snapshot end of turn status
   g.conn.execute("INSERT INTO cards_in_play SELECT card_name, num_cards, turn_id+1 FROM cards_in_play WHERE turn_id = " + str(turn_id))
-  print "INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = " + str(turn_id)
   g.conn.execute("INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = " + str(turn_id))
 
   #Next player's turn now unless game is over
@@ -200,7 +195,6 @@ def endturn():
     next_player_id = int(playerid) + 1
     if next_player_id == 5:
       next_player_id = 1
-    print( next_player_id, playerid,209 )
     g.conn.execute("UPDATE players SET isyourturn = true  where player_name = 'Player " + str(next_player_id) + "'" )
 
   ##TODO should update display of current game status when turn ends
@@ -209,7 +203,8 @@ def endturn():
 
 @app.route('/gamestate', methods=['POST'])
 def gamestate():
-  cursor = g.conn.execute("SELECT * FROM cards_in_play a JOIN all_cards b ON a.card_name = b.card_name;")
+  turn_id = g.conn.execute("SELECT MAX(turn_id) from cards_in_play").fetchone()[0]
+  cursor = g.conn.execute("SELECT * FROM cards_in_play a JOIN all_cards b ON a.card_name = b.card_name and turn_id=" + str(turn_id))
   board = {}
   columns = cursor.keys()
   for row in cursor:
@@ -224,7 +219,6 @@ def gamestate():
   if request.form['playerid'] == "0":
     result["hand"] = []
   else:
-    print(234,request.form['playerid'])
     isyourturn = g.conn.execute("SELECT isyourturn FROM players where id="+request.form['playerid']).fetchone()[0]
     #Only draw hand if it is your turn    
     if isyourturn == True:
@@ -232,6 +226,25 @@ def gamestate():
     else:
       result["hand"] = []
     result["isyourturn"] = isyourturn
+
+    
+  result["turnid"] = turn_id
+  result["gamestatus"] = []
+  for i in range(1,5):
+    num_cards = g.conn.execute("SELECT SUM(num_cards) FROM decks WHERE player_name='Player "+str(i)+"' and turn_id="+str(turn_id)).fetchone()[0]
+    if num_cards is None:
+      num_cards = 0
+    hands = g.conn.execute("SELECT SUM(num_cards) FROM hands WHERE player_name='Player "+str(i)+"' and turn_id="+str(turn_id)).fetchone()[0]
+    if hands is not None:
+      num_cards += hands
+    discards = g.conn.execute("SELECT SUM(num_cards) FROM discards WHERE player_name='Player "+str(i)+"' and turn_id="+str(turn_id)).fetchone()[0]
+    if discards is not None:
+      num_cards += discards
+    #TODO: should also calculate victory points in hand
+    vp = g.conn.execute("SELECT num_victory_points FROM num_victory_points WHERE player_name='Player "+str(i)+"' and turn_id="+str(turn_id)).fetchone()[0]
+    arr = ["Player " + str(i), num_cards, vp]
+    result["gamestatus"].append(arr)
+
 
   return Response(response=json.dumps(result), status=200, mimetype="application/json")
 

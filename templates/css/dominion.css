@@ -114,6 +114,21 @@
   top:5px;
 }
 
+.score {
+  position:absolute;
+  right:20px;
+  top:10px;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+table, th, td {
+  border: 1px solid black;
+  width:200px;
+}
+
 body {
 	margin:0;
   padding:0;

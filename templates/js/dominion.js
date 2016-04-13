@@ -82,6 +82,16 @@ function getgamestate() {
       //treasures and estates
       drawcards(".money-estates .card", tekeys);
 
+
+      //scoreboard
+      document.getElementById("turnid").innerHTML = "Turn: " + data["turnid"]; 
+      var t = document.getElementsByTagName("table")[0];
+      t.innerHTML = "<tr><th>Name</th><th>Cards</th><th>VP</th></tr>";
+      for(var i=0;i<data["gamestatus"].length;i++) {
+        var arr = data["gamestatus"][i];
+        t.innerHTML += "<tr><td>"+arr[0]+"</td><td>"+arr[1]+"</td><td>"+arr[2]+"</td></tr>";
+      }
+
     },
     error: function(err) {
       console.log("error");
