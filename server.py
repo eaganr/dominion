@@ -1,7 +1,5 @@
 #!/usr/bin/env python2.7
 
-#TODO: table top right with turn id, current state of victory points, and total cards each player has (remove player 1, 2 etc in GUI)
-
 """
 Columbia's COMS W4111.001 Introduction to Databases
 Example Webserver
@@ -75,8 +73,6 @@ def teardown_request(exception):
 @app.route('/')
 def index():
   context = {}
-
-
   return render_template("index.html", **context)
 
 @app.route('/history', methods=['GET'])
@@ -87,6 +83,7 @@ def history():
   context = {}
   context["maxturn"] = g.conn.execute("SELECT MAX(turn_id) FROM decks").fetchone()[0]  
 
+  #Get deck info
   cursor = g.conn.execute("SELECT * FROM decks WHERE player_name='Player "+playerid+"' and turn_id="+turnid)
   context["deck"] = []
   context["deck_size"] = 0
@@ -94,7 +91,7 @@ def history():
     context["deck"].append(row)
     context["deck_size"] += row[3]
 
-
+  #Get hand info
   cursor = g.conn.execute("SELECT * FROM hands WHERE player_name='Player "+playerid+"' and turn_id="+turnid)
   context["hand"] = []
   context["hand_size"] = 0
@@ -102,6 +99,7 @@ def history():
     context["hand"].append(row)
     context["hand_size"] += row[3]
 
+  #Get discard info
   cursor = g.conn.execute("SELECT * FROM discards WHERE player_name='Player "+playerid+"' and turn_id="+turnid)
   context["discards"] = []
   context["discards_size"] = 0
@@ -109,7 +107,7 @@ def history():
     context["discards"].append(row)
     context["discards_size"] += row[3]
 
-  #Get victory_points and cards
+  #Get victory_points and cards info
   context["victory_cards"] = []
   #First from just victory_tokens
   num_points = g.conn.execute("SELECT num_victory_points FROM num_victory_points WHERE player_name = 'Player "+playerid+"' and turn_id="+turnid).fetchone()[0]
@@ -129,7 +127,7 @@ def history():
 def draw_one_card(player_name, turn_id):
   cursor = g.conn.execute("SELECT count(*) FROM decks WHERE player_name='" + player_name + "' AND turn_id ="+ str(turn_id))
   size = int(cursor.fetchone()[0])
-  if size == 0:
+  if size == 0: #If there are no cards in the deck
     #Flip discard into deck
     g.conn.execute("INSERT INTO decks SELECT * FROM discards WHERE player_name = '" + player_name+ "' AND turn_id ="+ str(turn_id))
     g.conn.execute("DELETE FROM discards WHERE player_name = '" + player_name +"' AND turn_id ="+ str(turn_id))
@@ -166,7 +164,6 @@ def plusvictorypoints():
   turn_id = most_recent_turn_id()
   g.conn.execute("UPDATE TABLE num_victory_points SET num_victory_points = num_victory_points + 1 WHERE player_name='Player "+playerid+"' and turn_id=" +str(turn_id) )
 
-
 @app.route('/actiondraw', methods=['POST'])
 def actiondraw():
   playerid = request.form['playerid']
@@ -194,7 +191,6 @@ def endturn():
       num = arr[3]
       g.conn.execute("UPDATE discards SET num_cards = num_cards+"+str(num)+" WHERE player_name='Player "+str(playerid)+"' and card_name='"+arr[0]+"' and turn_id="+str(turn_id+1)) 
 
-  
   #Snapshot end of turn status
   g.conn.execute("INSERT INTO cards_in_play SELECT card_name, num_cards, turn_id+1 FROM cards_in_play WHERE turn_id = " + str(turn_id))
   g.conn.execute("INSERT INTO num_victory_points SELECT player_name, turn_id+1, num_victory_points FROM num_victory_points WHERE turn_id = " + str(turn_id))
