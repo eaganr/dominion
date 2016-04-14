@@ -7,6 +7,7 @@
   </style>
   <script>
     var maxturn = {{maxturn}};
+    var turnid = {{turnid}};
     function changeturn(n) {
       var val = parseInt(document.getElementById("turnid").value);
       val += n;
@@ -75,7 +76,9 @@
 <script>
   var get = window.location.search.split("&");
   var playerid = get[0].split("=")[1];
-  var turnid = get[1].split("=")[1];
+  var turnid = isNaN(get[1].split("=")[1])? 0 : get[1].split("=")[1];
+  if(turnid > maxturn) turnid = maxturn;
+  if(turnid < 0) turnid = 0;
   document.getElementById("turnid").value = turnid;
   document.getElementById("playerid").value = playerid;
 
