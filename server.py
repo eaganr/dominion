@@ -78,10 +78,15 @@ def index():
 @app.route('/history', methods=['GET'])
 def history():
   playerid = request.args.get("playerid")
-  turnid = request.args.get("turnid")
+  turnid = int(request.args.get("turnid"))
 
   context = {}
   context["maxturn"] = g.conn.execute("SELECT MAX(turn_id) FROM decks").fetchone()[0]  
+  if turnid > int(context["maxturn"]):
+    turnid = int(context["maxturn"])
+  if turnid < 0:
+    turnid = 0
+  turnid = str(turnid)
 
   #Get deck info
   cursor = g.conn.execute("SELECT * FROM decks WHERE player_name='Player "+playerid+"' and turn_id="+turnid)
